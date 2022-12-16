@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  reverse-proxy:
+    # The official v2 Traefik docker image
+    image: traefik:v2.9
+    # Enables the web UI and tells Traefik to listen to docker
+    command:
+      - --accesslog=true
+      - --api=true
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --entryPoints.web.address=:80
+      - --entryPoints.web.forwardedHeaders.insecure=true
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entryPoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entryPoints.websecure.forwardedHeaders.insecure=true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.dev.localhost`)
+      - traefik.http.routers.dashboard.service=api@internal
+    ports:
+      # The HTTP port
+      - 80:80
+      # The HTTPS port
+      - 443:443
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+  pomerium:
+    image: pomerium/pomerium:latest
+    environment:
+      - IDP_CLIENT_ID=${CLIENT_ID?CLIENT_ID must be set}
+      - IDP_CLIENT_SECRET=${CLIENT_SECRET?CLIENT_SECRET must be set}
+      - IDP_PROVIDER_URL=https://login.microsoftonline.com/${TENANT_ID?TENANT_ID must be set}/v2.0
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pomerium.rule=Host(`pomerium.dev.localhost`)
+      - traefik.http.middlewares.test-auth.forwardauth.address=http://pomerium/?uri=https://whoami.dev.localhost
+      - traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders=x-pomerium-claim-email,x-pomerium-claim-id,x-pomerium-claim-groups,x-pomerium-jwt-assertion
+    expose:
+      - 80
+    volumes:
+      ## Mount your config file : https://www.pomerium.com/docs/reference/
+      - ./config.yaml:/pomerium/config.yaml:ro
+  whoami:
+    # A container that exposes an API to show its IP address
+    image: traefik/whoami
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.rule=Host(`whoami.dev.localhost`)
+      - traefik.http.routers.whoami.middlewares=test-auth@docker

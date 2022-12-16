@@ -1,0 +1,28 @@
+# See detailed configuration settings : https://www.pomerium.com/docs/reference/
+
+# this is the domain the identity provider will callback after a user authenticates
+authenticate_service_url: https://pomerium.dev.localhost
+forward_auth_url: http://pomerium
+insecure_server: true
+address: :80
+
+##################################################################################
+# Identity provider settings : https://www.pomerium.com/docs/identity-providers/ #
+# The keys required in this section vary depending on your IdP. See the          #
+# appropriate docs for your IdP to configure Pomerium accordingly.               #
+##################################################################################
+idp_provider: azure
+
+# Generate 256 bit random keys  e.g. `head -c32 /dev/urandom | base64`
+cookie_secret: V2JBZk0zWGtsL29UcFUvWjVDWWQ2UHExNXJ0b2VhcDI=
+
+# https://pomerium.com/reference/#routes
+routes:
+  - from: https://whoami.dev.localhost
+    to: https://whoami.dev.localhost
+    policy:
+      - allow:
+          or:
+            - domain:
+                is: gmail.com
+    pass_identity_headers: true
