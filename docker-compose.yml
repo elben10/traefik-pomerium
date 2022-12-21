@@ -21,6 +21,7 @@ services:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.dev.localhost`)
       - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.middlewares=test-auth@docker
     ports:
       # The HTTP port
       - 80:80
@@ -38,8 +39,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.pomerium.rule=Host(`pomerium.dev.localhost`)
-      - traefik.http.middlewares.test-auth.forwardauth.address=http://pomerium/?uri=https://whoami.dev.localhost
+      - traefik.http.middlewares.test-auth.forwardauth.address=http://pomerium
       - traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders=x-pomerium-claim-email,x-pomerium-claim-id,x-pomerium-claim-groups,x-pomerium-jwt-assertion
+      - traefik.http.middlewares.test-auth.forwardauth.trustForwardHeader=true
     expose:
       - 80
     volumes:
